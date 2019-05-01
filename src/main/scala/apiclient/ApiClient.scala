@@ -27,7 +27,10 @@ class ApiClient(url: String, keyId: String, secretKey: String) {
 
     val params = "symbols=" + tickers.mkString(",")
     val jsValue = fetchChart("/bars/1D", params)
-    tickers.map(t => (t, (jsValue \ t).as[List[JsValue]].map(v => Bar.apply(t, Period.days(1), v)))).toMap
+    tickers.map(t => (
+      t,
+      (jsValue \ t).as[List[JsValue]].map(v => Bar.apply(t, Period.days(1), v))
+    )).toMap
   }
 
   private def fetchChart(path: String, params: String): JsValue = {
