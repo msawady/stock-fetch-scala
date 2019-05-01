@@ -41,8 +41,9 @@ class ApiClient(url: String, keyId: String, secretKey: String) {
     val req = HttpRequest(HttpMethods.GET, uri = uri).withHeaders(List(h1, h2))
     val res = Await.result(Http().singleRequest(req), timeout.duration)
     val body = Unmarshal(res.entity).to[String]
-    system.terminate
 
+    Await.result(Http().shutdownAllConnectionPools(), timeout.duration)
+    Await.result(system.terminate(), timeout.duration)
     Json.parse(Await.result(body, timeout.duration))
   }
 }
