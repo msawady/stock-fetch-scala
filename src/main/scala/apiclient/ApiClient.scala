@@ -8,7 +8,6 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import domain.Bar
-import org.joda.time.Period
 import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.Await
@@ -29,7 +28,7 @@ class ApiClient(url: String, keyId: String, secretKey: String) {
     val jsValue = fetchChart("/bars/1D", params)
     tickers.map(t => (
       t,
-      (jsValue \ t).as[List[JsValue]].map(v => Bar.apply(t, Period.days(1), v))
+      (jsValue \ t).as[List[JsValue]].map(v => Bar.apply(t, v))
     )).toMap
   }
 
