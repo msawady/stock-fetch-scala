@@ -11,6 +11,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % "2.5.21",
   "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.21" % Test,
 
-  "com.typesafe.play" %% "play-json" % "2.7.2"
+  "com.typesafe.play" %% "play-json" % "2.7.2",
+
+  "com.lihaoyi" %% "pprint" % "0.5.3"
 )
 

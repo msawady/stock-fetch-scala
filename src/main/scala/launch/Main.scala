@@ -13,6 +13,6 @@ object Main {
     val secretKey: String = (settings \ "secretKey").as[String]
 
     val cli = new ApiClient(url, keyId, secretKey)
-    println(cli.fetchDailyChart(Seq("AAPL")))
+    pprint.pprintln(cli.fetchDailyChart(Seq("AAPL")))
   }
 }
