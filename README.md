@@ -11,6 +11,6 @@ Scala utility scripts for getting US-stock prices via [Alpaca API](https://alpac
 1. Edit `src/main/scala/launch/Main.scala` and run the code.
 
 ``` scala
-  // input your target ticker codes.
-  cli.fetchDailyChart(Seq("AAPL"))
+    // input your target ticker codes.
+    pprint.pprintln(MarketUseCase.fetchDailyChart(Seq("AAPL")))
 ```
