@@ -9,32 +9,30 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import domain.Bar
 import play.api.libs.json.{JsValue, Json}
+import usecase._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.io.Source
 
 
-class ApiClient(url: String, keyId: String, secretKey: String) {
-  def apply(url: String, keyId: String, secretKey: String): ApiClient = new ApiClient(url, keyId, secretKey)
+class AlpacaApiClient(baseUrl: String, keyId: String, secretKey: String) extends ApiClient {
 
   implicit val timeout = Timeout(5 second)
   implicit val system = ActorSystem()
   implicit val materialize = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 
-  def fetchDailyChart(tickers: Seq[String]): Map[String, List[Bar]] = {
+  def fetchChart(tickers: Seq[String], period: BarPeriod): Map[String, List[Bar]] = {
 
-    val params = "symbols=" + tickers.mkString(",")
-    val jsValue = fetchChart("/bars/1D", params)
-    tickers.map(t => (
-      t,
-      (jsValue \ t).as[List[JsValue]].map(v => Bar.apply(t, v))
-    )).toMap
-  }
+    val periodUriFragment = period match {
+      case OneDay => "/bars/1D"
+      case OneMin => "/bars/1Min"
+      case FiveMin => "/bars/5Min"
+      case FifteenMin => "/bars/15Min"
+    }
 
-  private def fetchChart(path: String, params: String): JsValue = {
-
-    val uri = Uri(this.url + path).withRawQueryString(params)
+    val uri = Uri(this.baseUrl + periodUriFragment).withRawQueryString("symbols=" + tickers.mkString(","))
     val h1: RawHeader = RawHeader("APCA-API-KEY-ID", this.keyId)
     val h2: RawHeader = RawHeader("APCA-API-SECRET-KEY", this.secretKey)
 
@@ -44,6 +42,22 @@ class ApiClient(url: String, keyId: String, secretKey: String) {
 
     Await.result(Http().shutdownAllConnectionPools(), timeout.duration)
     Await.result(system.terminate(), timeout.duration)
-    Json.parse(Await.result(body, timeout.duration))
+    val jsValue = Json.parse(Await.result(body, timeout.duration))
+
+    tickers.map(t => (
+      t,
+      (jsValue \ t).as[List[JsValue]].map(v => Bar.apply(t, v))
+    )).toMap
+  }
+
+}
+
+object AlpacaApiClient {
+  def apply(): AlpacaApiClient = {
+    val settings: JsValue = Json.parse(Source.fromResource("settings.json").getLines().mkString)
+    val baseUrl: String = (settings \ "endpoint").as[String]
+    val keyId: String = (settings \ "keyId").as[String]
+    val secretKey: String = (settings \ "secretKey").as[String]
+    new AlpacaApiClient(baseUrl, keyId, secretKey)
   }
 }
