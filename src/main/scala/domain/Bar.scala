@@ -14,16 +14,6 @@ case class Bar(
               )
 
 object Bar {
-  def apply(
-             ticker: String,
-             close: BigDecimal,
-             open: BigDecimal,
-             high: BigDecimal,
-             low: BigDecimal,
-             volume: BigDecimal,
-             time: DateTime
-           ): Bar = new Bar(ticker, close, open, high, low, volume, time)
-
   def apply(ticker: String, jsValue: JsValue): Bar = {
     val close = (jsValue \ "c").as[BigDecimal]
     val open = (jsValue \ "o").as[BigDecimal]
