@@ -33,11 +33,10 @@ class MarketUseCase(apiClient: MarketApiClient, slackGateway: SlackGateway) {
     }
   }
 
-  def sendReportToSlack(tickers: Seq[String]): Unit = {
+  def sendReportToSlack(tickers: Seq[String]): Future[Unit] = {
     for {
       data <- fetchPriceData(tickers)
       _ <- slackGateway.postPriceReport(data.values.flatten.toSeq)
-    } yield ()
-
+    } yield println(s"maybe send $data")
   }
 }

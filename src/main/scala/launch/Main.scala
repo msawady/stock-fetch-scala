@@ -1,6 +1,7 @@
 package launch
 
 import apiclient.{MarketApiClientAlpacaImpl, SlackGatewayImpl}
+import com.twitter.util.Await
 import usecase.MarketUseCase
 
 object Main {
@@ -9,6 +10,10 @@ object Main {
     val alpaca = new MarketApiClientAlpacaImpl
     val slack = new SlackGatewayImpl
     pprint.pprintln(
-      new MarketUseCase(alpaca, slack).sendReportToSlack(Seq("AAPL")))
+      Await.result {
+        new MarketUseCase(alpaca, slack)
+          .sendReportToSlack(Seq("AAPL", "ZM", "BND"))
+      }
+    )
   }
 }

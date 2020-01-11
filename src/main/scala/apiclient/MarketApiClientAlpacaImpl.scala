@@ -10,6 +10,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.twitter.util.Future
 import domain._
+import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
 import settings.Settings
 
@@ -34,7 +35,8 @@ class MarketApiClientAlpacaImpl() extends MarketApiClient {
                  span: Int): Future[Map[Ticker, Option[Chart]]] = {
 
     val query = Query(
-      Map("symbols" -> tickers.mkString(","), "limit" -> span.toString)
+      Map("symbols" -> tickers.map(_.value).mkString(","),
+          "limit" -> span.toString)
     )
 
     val uri = Uri(baseUrl + periodUriFragment(period)).withQuery(query)
@@ -50,7 +52,7 @@ class MarketApiClientAlpacaImpl() extends MarketApiClient {
         .map(t => {
           val bars = (jsValue \ t.value)
             .asOpt[Seq[JsValue]]
-            .map(data => data.map(jv => Bar.apply(t, jv)))
+            .map(data => data.map(jv => toDomainBar(t, jv)))
           if (bars.exists(_.nonEmpty)) {
             t -> Some(Chart(bars.get))
           } else {
@@ -67,6 +69,19 @@ class MarketApiClientAlpacaImpl() extends MarketApiClient {
     case FiveMin    => "/bars/5Min"
     case FifteenMin => "/bars/15Min"
   }
+
+  private def toDomainBar(ticker: Ticker, jsValue: JsValue): Bar = {
+    val close = (jsValue \ "c").as[BigDecimal]
+    val open = (jsValue \ "o").as[BigDecimal]
+    val high = (jsValue \ "h").as[BigDecimal]
+    val low = (jsValue \ "l").as[BigDecimal]
+    val volume = (jsValue \ "v").as[BigDecimal]
+    val time = new DateTime((jsValue \ "t").as[Long] * 1000L) // TODO checking TimeZone
+    Bar(ticker, close, open, high, low, volume, time)
+  }
+
+  private implicit def toStockPrice(value: BigDecimal): StockPrice =
+    StockPrice(value)
 
   def close(): Future[Unit] = {
     for {
