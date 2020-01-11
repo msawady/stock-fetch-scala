@@ -1,14 +1,43 @@
 package usecase
 
-import bindings.MixInApiClient
-import domain.Bar
+import com.twitter.util.Future
+import domain._
 
-trait MarketUseCase extends UsesApiClient
+class MarketUseCase(apiClient: MarketApiClient, slackGateway: SlackGateway) {
 
+  def fetchDailyChart(
+      tickers: Seq[String]): Future[Map[Ticker, Option[Chart]]] = {
+    apiClient.fetchChart(tickers.map(Ticker), OneDay, 100)
+  }
 
-object MarketUseCase extends MarketUseCase with MixInApiClient {
+  def fetchPriceData(
+      tickers: Seq[String]): Future[Map[Ticker, Option[PriceReport]]] = {
+    for {
+      minuteChart <- apiClient.fetchChart(tickers.map(Ticker), OneMin, 1)
+      dailyChart <- apiClient.fetchChart(tickers.map(Ticker), OneDay, 2)
+    } yield {
+      minuteChart.map {
+        case (ticker, Some(chart)) => {
+          val currentBar = chart.latest
+          ticker -> dailyChart
+            .get(ticker)
+            .flatten
+            .flatMap(chart => {
+              currentBar.map(PriceReport.fromCurrentBarAndChart(_, chart))
+            })
+        }
+        case (ticker, None) => {
+          ticker -> None
+        }
+      }
+    }
+  }
 
-  def fetchDailyChart(tickers: Seq[String]): Map[String, List[Bar]] = {
-    apiClient.fetchChart(tickers, OneDay)
+  def sendReportToSlack(tickers: Seq[String]): Unit = {
+    for {
+      data <- fetchPriceData(tickers)
+      _ <- slackGateway.postPriceReport(data.values.flatten.toSeq)
+    } yield ()
+
   }
 }
